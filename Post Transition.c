@@ -1,117 +1,150 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#define MAX_STRING_LENGTH 50
+#include <string.h> 
+#define MAX_STRING_LENGTH 6
 
-struct package {
+struct package
+{
     char* id;
     int weight;
+    struct package* next;  
 };
-
 typedef struct package package;
 
-struct post_office 
+struct post_office
 {
     int min_weight;
     int max_weight;
-    package* packages;
+    package* packagesHead;  
+    package* packagesTail;  
     int packages_count;
 };
-
 typedef struct post_office post_office;
 
-struct town 
+struct town
 {
     char* name;
     post_office* offices;
     int offices_count;
 };
-
 typedef struct town town;
 
-void print_all_packages(town t) 
-{
-    printf("%s:\n", t.name);
-    for(int i=0;i<t.offices_count;i++) 
-	{
-        printf("\t%d:\n", i);
-        for(int j=0;j<t.offices[i].packages_count;j++) 
-		{
-            printf("\t\t%s\n",t.offices[i].packages[j].id);
+void func_InsertPackages(post_office* office){ 
+    if(office->packagesHead==NULL){
+        office->packagesHead = (package*)malloc(sizeof(package));
+        office->packagesTail = office->packagesHead;
+    }
+    else{
+        office->packagesTail->next = (package*)malloc(sizeof(package));
+        office->packagesTail = office->packagesTail->next;
+    }
+    office->packagesTail->next = NULL;
+    office->packagesTail->id = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    scanf("%s", office->packagesTail->id);
+    scanf("%d", &office->packagesTail->weight);
+    return;
+}
+
+void func_AppendPackage(package** Head, package** Tail, package* node){ 
+    if((*Head)==NULL){
+        *Head = node;
+        *Tail = node;
+    }
+    else{
+        (*Tail)->next = node;
+        *Tail = node;
+    }
+}
+
+void func_RemovePackage(package** Head,package** Tail,package* prev,package* current){ 
+    if((*Head)==prev && prev==current)
+        *Head = current->next;
+    else if((*Tail)==current)
+        (*Tail) = prev;
+    prev->next=current->next;
+}
+
+void print_all_packages(town t) {
+    printf("%s:\n",t.name);
+    for(int i=0; i<t.offices_count; i++){
+        printf("\t%d:\n",i);
+        package* node = t.offices[i].packagesHead;
+        while(node!=NULL){
+            printf("\t\t%s\n",node->id);
+            node = node->next;
         }
     }
 }
 
 void send_all_acceptable_packages(town* source, int source_office_index, town* target, int target_office_index) {
-    post_office* src_office=&(source->offices[source_office_index]);
-    post_office* tgt_office=&(target->offices[target_office_index]);
+    post_office* sourceOffice = source->offices+source_office_index;
+    post_office* targetOffice = target->offices+target_office_index;
 
-    int count = 0;
-    for(int i=0;i<src_office->packages_count;i++) 
-	{
-        package p=src_office->packages[i];
-        if (p.weight>=tgt_office->min_weight&&p.weight<=tgt_office->max_weight) 
-		{
-            tgt_office->packages=realloc(tgt_office->packages,sizeof(package)*(tgt_office->packages_count+1));
-            tgt_office->packages[tgt_office->packages_count++]=p;
-            count++;
+    package* travelS = sourceOffice->packagesHead;
+    package* tempPreviousS = travelS;
+    package* tempDeleteS = travelS;
+    package** sourceHead = &sourceOffice->packagesHead;
+    package** sourceTail = &sourceOffice->packagesTail;
+    package** targetHead = &targetOffice->packagesHead;
+    package** targetTail = &targetOffice->packagesTail;
+
+    while(travelS!=NULL){
+        if((travelS->weight>=targetOffice->min_weight) && (travelS->weight<=targetOffice->max_weight)){
+            func_AppendPackage(targetHead,targetTail,travelS);
+            func_RemovePackage(sourceHead,sourceTail,tempPreviousS,travelS);
+            travelS = travelS->next;
+            (*targetTail)->next = NULL;
+            targetOffice->packages_count++;
+            sourceOffice->packages_count--;
+        }
+        else{
+            tempPreviousS = travelS;
+            travelS = travelS->next;
         }
     }
-    src_office->packages_count-=count;
 }
 
-town town_with_most_packages(town* towns, int towns_count) 
+town town_with_most_packages(town* towns, int towns_count) {
+    int twmpi = 0; 
+    int mpnt = 0; 
+    int pnt = 0; 
+    for(int i=0; i<towns_count; i++,pnt=0){
+        for(int j=0; j<towns[i].offices_count; j++)
+            pnt+= towns[i].offices[j].packages_count;
+        if(pnt>mpnt){
+            mpnt = pnt;
+            twmpi = i;
+        }
+    }
+    return towns[twmpi];
+}
+
+town* find_town(town* towns, int towns_count, char* name) {
+    int townIndex = 0;
+    for(int i=0; i<towns_count; i++)
+        if(strcmp(towns[i].name,name)==0){
+            townIndex = i;
+            break;
+        }
+    return &towns[townIndex];
+}
+
+int main()
 {
-    town most_packages_town=towns[0];
-    int max_packages=0;
-
-    for (int i=0;i<towns_count;i++) 
-	{
-        int total_packages=0;
-        for (int j=0;j<towns[i].offices_count;j++) 
-		{
-            total_packages+=towns[i].offices[j].packages_count;
-        }
-        if (total_packages>max_packages) 
-		{
-            max_packages=total_packages;
-            most_packages_town=towns[i];
-        }
-    }
-    return most_packages_town;
-}
-
-town* find_town(town* towns,int towns_count,char* name) {
-    for (int i=0;i<towns_count;i++) {
-        if (strcmp(towns[i].name,name)==0) 
-		{
-            return &towns[i];
-        }
-    }
-    return NULL;
-}
-
-int main() {
     int towns_count;
     scanf("%d", &towns_count);
-    town* towns=malloc(sizeof(town) * towns_count);
-
-    for (int i=0;i<towns_count;i++) 
-	{
-        towns[i].name=malloc(sizeof(char) * MAX_STRING_LENGTH);
-        scanf("%s",towns[i].name);
-        scanf("%d",&towns[i].offices_count);
-        towns[i].offices=malloc(sizeof(post_office) * towns[i].offices_count);
-
-        for (int j=0;j<towns[i].offices_count;j++) 
-		{
-            scanf("%d %d %d",&towns[i].offices[j].packages_count,&towns[i].offices[j].min_weight,&towns[i].offices[j].max_weight);
-            towns[i].offices[j].packages=malloc(sizeof(package) * towns[i].offices[j].packages_count);
-
-            for (int k=0;k<towns[i].offices[j].packages_count;k++) 
-			{
-                towns[i].offices[j].packages[k].id=malloc(sizeof(char) * MAX_STRING_LENGTH);
-                scanf("%s %d",towns[i].offices[j].packages[k].id,&towns[i].offices[j].packages[k].weight);
+    town* towns = malloc(sizeof(town)*towns_count);
+    for (int i = 0; i < towns_count; i++) {
+        towns[i].name = malloc(sizeof(char) * MAX_STRING_LENGTH);
+        scanf("%s", towns[i].name);
+        scanf("%d", &towns[i].offices_count);
+        towns[i].offices = calloc(towns[i].offices_count,sizeof(post_office));
+        for (int j = 0; j < towns[i].offices_count; j++) {
+            scanf("%d%d%d", &towns[i].offices[j].packages_count, &towns[i].offices[j].min_weight, &towns[i].offices[j].max_weight);
+     
+            for (int k = 0; k < towns[i].offices[j].packages_count; k++) {
+                func_InsertPackages(&towns[i].offices[j]);  
+            
             }
         }
     }
@@ -119,36 +152,30 @@ int main() {
     int queries;
     scanf("%d", &queries);
     char town_name[MAX_STRING_LENGTH];
-
     while (queries--) {
         int type;
         scanf("%d", &type);
-
         switch (type) {
-            case 1: {
-                scanf("%s", town_name);
-                town* t = find_town(towns, towns_count, town_name);
-                print_all_packages(*t);
-                break;
-            }
-            case 2: {
-                scanf("%s", town_name);
-                town* source = find_town(towns, towns_count, town_name);
-                int source_index;
-                scanf("%d", &source_index);
-                scanf("%s", town_name);
-                town* target = find_town(towns, towns_count, town_name);
-                int target_index;
-                scanf("%d", &target_index);
-                send_all_acceptable_packages(source, source_index, target, target_index);
-                break;
-            }
-            case 3: {
-                printf("Town with the most number of packages is %s\n", town_with_most_packages(towns, towns_count).name);
-                break;
-            }
+        case 1:
+            scanf("%s", town_name);
+            town* t = find_town(towns, towns_count, town_name);
+            print_all_packages(*t);
+            break;
+        case 2:
+            scanf("%s", town_name);
+            town* source = find_town(towns, towns_count, town_name);
+            int source_index;
+            scanf("%d", &source_index);
+            scanf("%s", town_name);
+            town* target = find_town(towns, towns_count, town_name);
+            int target_index;
+            scanf("%d", &target_index);
+            send_all_acceptable_packages(source, source_index, target, target_index);
+            break;
+        case 3:
+            printf("Town with the most number of packages is %s\n", town_with_most_packages(towns, towns_count).name);
+            break;
         }
     }
-
     return 0;
 }
