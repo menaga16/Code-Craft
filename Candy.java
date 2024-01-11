@@ -12,6 +12,7 @@ class Solution {
             {
                 candies[i]=candies[i-1]+1;
             }
+            
         }
         
         for (int i=n-2;i>=0;i--) 
