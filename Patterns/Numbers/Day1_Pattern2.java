@@ -5,7 +5,6 @@ public class Main
 	{
 	    
 	Scanner scan=new Scanner(System.in);
-        System.out.println("enter a value: ");
         Integer N=scan.nextInt();
         for(int i=1;i<=N;i++)
         {
@@ -21,3 +20,11 @@ public class Main
         }
 	}
 }
+
+OUTPUT:
+5
+    1
+   21
+  321
+ 4321
+54321
